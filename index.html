@@ -35,13 +35,13 @@
             </div>
 
             <div class="control-group">
-                <label for="velocity">Initial Velocity:</label>
+                <label for="velocity">Initial Velocity (0 = auto orbital):</label>
                 <input type="range" id="velocity" min="0" max="50" value="0">
                 <span id="velocity-value">0</span>
                 <select id="velocity-unit">
+                    <option value="orbital">× Orbital Speed</option>
                     <option value="kms">km/s</option>
                     <option value="ms">m/s</option>
-                    <option value="orbital">Orbital Units</option>
                 </select>
             </div>
 
@@ -110,6 +110,13 @@
                 <li><strong>Mouse Wheel:</strong> Zoom in/out</li>
                 <li><strong>Drag Planet:</strong> Adjust initial velocity vector</li>
                 <li><strong>Double Click Planet:</strong> Remove planet</li>
+            </ul>
+            <h3>⭐ Velocity Tips</h3>
+            <ul>
+                <li><strong>0 velocity:</strong> Auto-calculates perfect orbital speed</li>
+                <li><strong>1-10:</strong> Sub-orbital speeds (planet will fall toward star)</li>
+                <li><strong>10-20:</strong> Near-orbital speeds (stable circular orbits)</li>
+                <li><strong>20+:</strong> Super-orbital speeds (elliptical or escape orbits)</li>
             </ul>
         </div>
 

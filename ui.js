@@ -272,51 +272,57 @@ class UIController {
         let vx = 0, vy = 0;
         
         if (initialVelocityValue > 0) {
-            // Convert the velocity to appropriate units
-            const velocity = this.physics.convertVelocity(initialVelocityValue, this.velocityUnit.value);
+            // Find the most massive body to use as reference for velocity scaling
+            let centralBody = null;
+            let maxMass = 0;
             
-            // Scale the velocity for visualization (much smaller than real units)
-            const scaledVelocity = velocity * 0.001;
+            this.planets.forEach(planet => {
+                if (planet.mass > maxMass) {
+                    maxMass = planet.mass;
+                    centralBody = planet;
+                }
+            });
             
-            // If there are existing planets, try to set velocity tangential to nearest massive body
-            if (this.planets.length > 0) {
-                // Find the most massive body
-                let centralBody = null;
-                let maxMass = 0;
+            if (centralBody) {
+                const dx = x - centralBody.x;
+                const dy = y - centralBody.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                this.planets.forEach(planet => {
-                    if (planet.mass > maxMass) {
-                        maxMass = planet.mass;
-                        centralBody = planet;
-                    }
-                });
-                
-                if (centralBody) {
-                    const dx = x - centralBody.x;
-                    const dy = y - centralBody.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > 10) {
+                    // Calculate what the orbital velocity should be at this distance
+                    const orbitalSpeed = this.physics.calculateOrbitalVelocity(centralBody, distance);
                     
-                    if (distance > 10) {
-                        // Set velocity perpendicular to radius vector (tangential for circular orbit)
-                        vx = (-dy / distance) * scaledVelocity;
-                        vy = (dx / distance) * scaledVelocity;
+                    let finalSpeed;
+                    if (this.velocityUnit.value === 'orbital') {
+                        // User value is a direct multiplier of orbital velocity
+                        const velocityMultiplier = initialVelocityValue / 10; // Scale slider value (0-50) to (0-5)
+                        finalSpeed = orbitalSpeed * velocityMultiplier;
                     } else {
-                        // Too close to central body, set horizontal velocity
-                        vx = scaledVelocity;
-                        vy = 0;
+                        // Convert from other units and scale to match physics
+                        const velocity = this.physics.convertVelocity(initialVelocityValue, this.velocityUnit.value);
+                        finalSpeed = velocity * 0.001; // Scale for physics simulation
                     }
+                    
+                    // Set velocity perpendicular to radius vector (tangential for circular orbit)
+                    vx = (-dy / distance) * finalSpeed;
+                    vy = (dx / distance) * finalSpeed;
+                    
+                    console.log(`Orbital speed at distance ${distance.toFixed(1)}: ${orbitalSpeed.toFixed(3)}, Final speed: ${finalSpeed.toFixed(3)}`);
                 } else {
-                    // No central body found, set horizontal velocity
-                    vx = scaledVelocity;
+                    // Too close to central body, use a small horizontal velocity
+                    vx = initialVelocityValue * 0.1;
                     vy = 0;
                 }
             } else {
-                // No existing planets, set horizontal velocity
+                // No central body found, use absolute velocity
+                // Convert velocity and use a reasonable scale for free-floating objects
+                const velocity = this.physics.convertVelocity(initialVelocityValue, this.velocityUnit.value);
+                const scaledVelocity = velocity * 0.0001; // Much smaller scale for no-gravity scenarios
                 vx = scaledVelocity;
                 vy = 0;
             }
         } else {
-            // Velocity is 0, suggest optimal orbital velocity if there are existing massive bodies
+            // Velocity is 0, suggest optimal orbital velocity
             const suggestedVel = this.physics.suggestOrbitalVelocity(this.planets, x, y);
             vx = suggestedVel.vx;
             vy = suggestedVel.vy;
@@ -354,8 +360,46 @@ class UIController {
         indicator.style.top = `${rect.top + planet.y}px`;
         
         const velocity = Math.sqrt(dx * dx + dy * dy);
-        indicator.querySelector('.velocity-text').textContent = 
-            `Velocity: ${(velocity * 0.1).toFixed(1)} units`;
+        
+        // Calculate what the orbital velocity should be for reference
+        let referenceText = `Velocity: ${(velocity * 0.1).toFixed(1)} units`;
+        
+        // If there's a central body, show velocity as a multiplier of orbital velocity
+        if (this.planets.length > 0) {
+            let centralBody = null;
+            let maxMass = 0;
+            
+            this.planets.forEach(p => {
+                if (p !== planet && p.mass > maxMass) {
+                    maxMass = p.mass;
+                    centralBody = p;
+                }
+            });
+            
+            if (centralBody) {
+                const distanceToCentral = Math.sqrt(
+                    (planet.x - centralBody.x) ** 2 + 
+                    (planet.y - centralBody.y) ** 2
+                );
+                
+                if (distanceToCentral > 10) {
+                    const orbitalSpeed = this.physics.calculateOrbitalVelocity(centralBody, distanceToCentral);
+                    const currentSpeed = Math.sqrt(planet.vx ** 2 + planet.vy ** 2);
+                    const multiplier = currentSpeed / orbitalSpeed;
+                    
+                    referenceText = `Velocity: ${multiplier.toFixed(2)}× orbital speed`;
+                    if (multiplier < 0.8) {
+                        referenceText += " (will fall)";
+                    } else if (multiplier > 1.2) {
+                        referenceText += " (will escape)";
+                    } else {
+                        referenceText += " (stable orbit)";
+                    }
+                }
+            }
+        }
+        
+        indicator.querySelector('.velocity-text').textContent = referenceText;
     }
 
     hideVelocityIndicator() {
