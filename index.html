@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Star-Maker - Planetary System Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="title">✨ Star-Maker</h1>
+            <p class="subtitle">Interactive Planetary System Simulator</p>
+        </header>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="mass">Mass:</label>
+                <input type="range" id="mass" min="1" max="1000" value="100">
+                <span id="mass-value">100</span>
+                <select id="mass-unit">
+                    <option value="earth">Earth Masses</option>
+                    <option value="kg">Kilograms (×10²⁴)</option>
+                    <option value="sun">Solar Masses</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="density">Density:</label>
+                <input type="range" id="density" min="1" max="50" value="5">
+                <span id="density-value">5</span>
+                <span>g/cm³</span>
+            </div>
+
+            <div class="control-group">
+                <label for="velocity">Initial Velocity:</label>
+                <input type="range" id="velocity" min="0" max="50" value="0">
+                <span id="velocity-value">0</span>
+                <select id="velocity-unit">
+                    <option value="kms">km/s</option>
+                    <option value="ms">m/s</option>
+                    <option value="orbital">Orbital Units</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="planet-color">Color:</label>
+                <input type="color" id="planet-color" value="#4a90e2">
+            </div>
+
+            <div class="control-buttons">
+                <button id="clear-btn" class="btn btn-danger">🗑️ Clear All</button>
+                <button id="pause-btn" class="btn btn-primary">⏸️ Pause</button>
+                <button id="reset-btn" class="btn btn-secondary">🔄 Reset</button>
+                <button id="save-btn" class="btn btn-success">💾 Save</button>
+                <button id="load-btn" class="btn btn-info">📁 Load</button>
+            </div>
+
+            <div class="preset-scenarios">
+                <label>Presets:</label>
+                <button class="preset-btn" data-preset="solar">🌞 Solar System</button>
+                <button class="preset-btn" data-preset="binary">⭐ Binary Stars</button>
+                <button class="preset-btn" data-preset="asteroid">☄️ Asteroid Field</button>
+                <button class="preset-btn" data-preset="galaxy">🌌 Mini Galaxy</button>
+            </div>
+
+            <div class="physics-options">
+                <label>
+                    <input type="checkbox" id="show-forces" checked>
+                    Show Gravitational Forces
+                </label>
+                <label>
+                    <input type="checkbox" id="show-trails" checked>
+                    Show Orbital Trails
+                </label>
+                <label>
+                    <input type="checkbox" id="collisions" checked>
+                    Enable Collisions
+                </label>
+            </div>
+        </div>
+
+        <!-- Main Canvas Area -->
+        <div class="canvas-container">
+            <canvas id="simulation-canvas"></canvas>
+            <div class="canvas-overlay">
+                <div class="info-panel">
+                    <div id="fps-counter">FPS: 60</div>
+                    <div id="planet-count">Planets: 0</div>
+                    <div id="total-mass">Total Mass: 0 Earth Masses</div>
+                    <div id="kinetic-energy">Kinetic Energy: 0 J</div>
+                    <div id="potential-energy">Potential Energy: 0 J</div>
+                </div>
+                
+                <div class="velocity-indicator" id="velocity-indicator" style="display: none;">
+                    <div class="velocity-arrow"></div>
+                    <span class="velocity-text">Click to set velocity direction</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Panel -->
+        <div class="instructions">
+            <h3>🎮 Controls</h3>
+            <ul>
+                <li><strong>Left Click:</strong> Place planet at cursor position</li>
+                <li><strong>Right Click + Drag:</strong> Pan the view</li>
+                <li><strong>Mouse Wheel:</strong> Zoom in/out</li>
+                <li><strong>Drag Planet:</strong> Adjust initial velocity vector</li>
+                <li><strong>Double Click Planet:</strong> Remove planet</li>
+            </ul>
+        </div>
+
+        <!-- Hidden File Input for Loading -->
+        <input type="file" id="file-input" accept=".json" style="display: none;">
+    </div>
+
+    <script src="physics.js"></script>
+    <script src="ui.js"></script>
+    <script src="main.js"></script>
+</body>
+</html> 
