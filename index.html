@@ -1,258 +1,412 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Star Maker - 2D Solar System Simulator</title>
+    <title>墨象 · Star Maker — An Ink-wash Cosmos</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/p5.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   </head>
   <body>
+    <div id="paper-texture" aria-hidden="true"></div>
+
     <div id="app">
       <main id="canvas-pane">
         <div id="canvas-holder" aria-label="Simulation canvas"></div>
-        <button id="btn-expand-panel" class="floating-toggle" aria-label="Show control panel">Show Controls</button>
-        <div id="status-bar">
-          <span id="status-playstate">Paused</span>
-          <span>•</span>
-          <span id="status-model">Model: Keplerian</span>
-          <span>•</span>
-          <span id="status-bodies">Bodies: 0</span>
+
+        <div id="corner-title" aria-hidden="true">
+          <div class="corner-cn">墨象</div>
+          <div class="corner-en">Ink Cosmos</div>
+        </div>
+
+        <div id="compass-rose" aria-hidden="true">
+          <div class="compass-ring"></div>
+          <div class="compass-mark n">北</div>
+          <div class="compass-mark s">南</div>
+          <div class="compass-mark e">東</div>
+          <div class="compass-mark w">西</div>
+        </div>
+
+        <button id="btn-expand-panel" class="floating-toggle" aria-label="Unroll scroll">
+          <span class="brush-icon">☷</span>
+          <span>展卷 · Unroll</span>
+        </button>
+
+        <div id="status-bar" role="status">
+          <span id="status-playstate" class="status-chip">靜 · Still</span>
+          <span class="status-sep">｜</span>
+          <span id="status-model" class="status-chip">法 · Keplerian</span>
+          <span class="status-sep">｜</span>
+          <span id="status-bodies" class="status-chip">星 · 0</span>
+          <span class="status-sep">｜</span>
+          <span id="status-energy" class="status-chip muted-chip">能 · —</span>
+        </div>
+
+        <div id="canvas-hint">
+          <span class="hint-dot"></span>
+          <span>按住畫布拖曳 · 彈出星辰，滾輪縮放，右鍵或 Shift 拖移視野</span>
+          <span class="hint-en">Drag to fling a planet · Wheel to zoom · Right-click / Shift to pan</span>
         </div>
       </main>
 
-      <aside id="control-panel" aria-label="Control panel" style="z-index: 30; position: relative;">
+      <aside id="control-panel" aria-label="Control panel">
         <div class="panel-header">
-          <div>
-            <h1>Star Maker</h1>
-            <p class="subtitle">Interactive 2D solar system simulator</p>
+          <div class="title-block">
+            <div class="seal-stamp" aria-hidden="true">
+              <span>墨</span><span>象</span>
+            </div>
+            <div>
+              <h1 class="scroll-title">星辰譜</h1>
+              <p class="subtitle">Star Maker · 一卷水墨行星圖</p>
+            </div>
           </div>
-          <button id="btn-collapse-panel" class="ghost small" aria-label="Hide control panel">Hide</button>
+          <button id="btn-collapse-panel" class="ghost small" aria-label="Collapse scroll">
+            收卷 · Roll up
+          </button>
         </div>
 
-        <section class="card">
-          <h2>Simulation Controls</h2>
-          <div class="row">
-            <button id="btn-toggle">Play</button>
-            <button id="btn-step">Step</button>
-            <button id="btn-reset" class="danger">Reset</button>
+        <section class="card" data-char="動">
+          <div class="card-head">
+            <h2><span class="cn">演卷</span><span class="en">Simulation</span></h2>
+            <span class="card-subtitle">生滅之律 · The rhythm of motion</span>
           </div>
-          <div class="row">
-            <label>
-              Physics Model
-              <select id="select-model">
-                <option value="keplerian">Keplerian (star-only)</option>
-                <option value="kepler_exact">Kepler (exact)</option>
-                <option value="nbody">Newtonian N-Body</option>
-              </select>
+
+          <div class="row btn-row">
+            <button id="btn-toggle" class="brush-btn primary">
+              <span class="cn">啟</span><span class="en">Play</span>
+            </button>
+            <button id="btn-step" class="brush-btn">
+              <span class="cn">步</span><span class="en">Step</span>
+            </button>
+            <button id="btn-reset" class="brush-btn danger">
+              <span class="cn">滌</span><span class="en">Reset</span>
+            </button>
+          </div>
+
+          <label class="field">
+            <span class="field-label"><span class="cn">律法</span><span class="en">Physics Model</span></span>
+            <select id="select-model">
+              <option value="keplerian">環日 · Keplerian (central star)</option>
+              <option value="kepler_exact">精環 · Kepler (exact, conic)</option>
+              <option value="nbody">萬有 · Newtonian N-Body</option>
+            </select>
+          </label>
+
+          <div class="row slider-row">
+            <label class="field">
+              <span class="field-label"><span class="cn">時步</span><span class="en">Time Step · dt</span><span class="num" id="label-dt">0.50</span></span>
+              <input id="range-dt" type="range" min="0.01" max="2" value="0.5" step="0.01" />
             </label>
-            <label class="inline" style="margin-left:auto; gap:8px;">
+            <label class="field">
+              <span class="field-label"><span class="cn">引力 G</span><span class="en">Gravity</span><span class="num" id="label-g">2.0</span></span>
+              <input id="range-g" type="range" min="0.1" max="10" value="2" step="0.1" />
+            </label>
+            <label class="field">
+              <span class="field-label"><span class="cn">軌痕</span><span class="en">Trail Length</span><span class="num" id="label-trail">150</span></span>
+              <input id="range-trail" type="range" min="0" max="600" value="180" step="10" />
+            </label>
+            <label class="field">
+              <span class="field-label"><span class="cn">軟化 ε²</span><span class="en">Softening</span><span class="num" id="label-soft">4</span></span>
+              <input id="range-soft" type="range" min="0" max="30" value="4" step="0.5" />
+            </label>
+          </div>
+
+          <div class="row toggle-row">
+            <label class="toggle">
+              <input type="checkbox" id="checkbox-collide" />
+              <span class="toggle-ink"></span>
+              <span class="toggle-text"><span class="cn">相撞則合</span><span class="en">Merge on impact</span></span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="checkbox-ghost-orbit" checked />
+              <span class="toggle-ink"></span>
+              <span class="toggle-text"><span class="cn">顯未來軌</span><span class="en">Predictive trace</span></span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="checkbox-grid" />
+              <span class="toggle-ink"></span>
+              <span class="toggle-text"><span class="cn">井田格</span><span class="en">Paper grid</span></span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="checkbox-labels" checked />
+              <span class="toggle-ink"></span>
+              <span class="toggle-text"><span class="cn">書名</span><span class="en">Show names</span></span>
+            </label>
+          </div>
+
+          <div class="row btn-row">
+            <button id="btn-center" class="brush-btn ghost-btn">
+              <span class="cn">歸中</span><span class="en">Center Star</span>
+            </button>
+            <button id="btn-fit" class="brush-btn ghost-btn">
+              <span class="cn">容天</span><span class="en">Fit All</span>
+            </button>
+            <button id="btn-save" class="brush-btn ghost-btn">
+              <span class="cn">藏</span><span class="en">Save Scene</span>
+            </button>
+            <button id="btn-load" class="brush-btn ghost-btn">
+              <span class="cn">取</span><span class="en">Load Scene</span>
+            </button>
+            <input id="input-file" type="file" accept="application/json" hidden />
+          </div>
+        </section>
+
+        <section class="card" data-char="譜">
+          <div class="card-head">
+            <h2><span class="cn">天籟</span><span class="en">Heaven's Voice</span></h2>
+            <span class="card-subtitle">以星為律 · Sonify the stars</span>
+          </div>
+
+          <div class="row toggle-row">
+            <label class="toggle primary">
               <input type="checkbox" id="checkbox-audio" />
-              Enable Sound
+              <span class="toggle-ink"></span>
+              <span class="toggle-text"><span class="cn">鳴</span><span class="en">Enable Sound</span></span>
             </label>
-            <label class="inline" style="gap:8px;">
-              Rhythm
-              <select id="select-rhythm">
-                <option value="off">Off</option>
-                <option value="orbit">Orbit Beat</option>
-                <option value="speed">Speed Pulse</option>
-                <option value="metronome">Metronome</option>
-              </select>
-            </label>
-            <label class="inline" style="gap:8px;">
-              Master Vol
-              <input id="range-master-volume" type="range" min="0" max="1" value="0.6" step="0.01" />
-              <span id="label-master-volume">0.60</span>
-            </label>
-            <label class="inline" style="gap:8px;">
-              Reverb
+            <label class="toggle">
               <input type="checkbox" id="checkbox-reverb" />
+              <span class="toggle-ink"></span>
+              <span class="toggle-text"><span class="cn">空谷</span><span class="en">Reverb</span></span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="checkbox-phase-orbit" />
+              <span class="toggle-ink"></span>
+              <span class="toggle-text"><span class="cn">隨軌而動</span><span class="en">Phase by orbit</span></span>
             </label>
           </div>
-          <div class="row">
-            <label>
-              Tempo (BPM)
+
+          <div class="row slider-row">
+            <label class="field">
+              <span class="field-label"><span class="cn">主音量</span><span class="en">Master</span><span class="num" id="label-master-volume">0.60</span></span>
+              <input id="range-master-volume" type="range" min="0" max="1" value="0.6" step="0.01" />
+            </label>
+            <label class="field">
+              <span class="field-label"><span class="cn">拍速</span><span class="en">Tempo · BPM</span><span class="num" id="label-bpm">90</span></span>
               <input id="range-bpm" type="range" min="40" max="180" value="90" step="1" />
-              <span id="label-bpm">90</span>
             </label>
           </div>
-          <div class="row">
-            <label>
-              Scale
+
+          <div class="grid-three">
+            <label class="field">
+              <span class="field-label"><span class="cn">調式</span><span class="en">Scale</span></span>
               <select id="select-scale">
-                <option value="off">Off</option>
-                <option value="major">Major</option>
-                <option value="minor">Minor</option>
-                <option value="pentatonic">Pentatonic</option>
+                <option value="off">無調 · Off</option>
+                <option value="gong" selected>宮 · Gong (Major pentatonic)</option>
+                <option value="shang">商 · Shang</option>
+                <option value="jue">角 · Jue</option>
+                <option value="zhi">徵 · Zhi</option>
+                <option value="yu">羽 · Yu (Minor pentatonic)</option>
+                <option value="major">洋宮 · Major</option>
+                <option value="minor">洋商 · Minor</option>
+                <option value="dorian">Dorian</option>
+                <option value="lydian">Lydian</option>
               </select>
             </label>
-            <label>
-              Root
+            <label class="field">
+              <span class="field-label"><span class="cn">基音</span><span class="en">Root</span></span>
               <select id="select-root">
                 <option value="C">C</option>
-                <option value="C#">C#</option>
+                <option value="C#">C♯</option>
                 <option value="D">D</option>
-                <option value="Eb">Eb</option>
+                <option value="Eb">E♭</option>
                 <option value="E">E</option>
                 <option value="F">F</option>
-                <option value="F#">F#</option>
+                <option value="F#">F♯</option>
                 <option value="G" selected>G</option>
-                <option value="Ab">Ab</option>
+                <option value="Ab">A♭</option>
                 <option value="A">A</option>
-                <option value="Bb">Bb</option>
+                <option value="Bb">B♭</option>
                 <option value="B">B</option>
               </select>
             </label>
-            <label>
-              Subdiv
-              <select id="select-subdiv">
-                <option value="1">1/1</option>
-                <option value="2">1/2</option>
-                <option value="4" selected>1/4</option>
-                <option value="8">1/8</option>
+            <label class="field">
+              <span class="field-label"><span class="cn">節拍</span><span class="en">Rhythm</span></span>
+              <select id="select-rhythm">
+                <option value="off">無 · Off</option>
+                <option value="orbit">軌脈 · Orbit Beat</option>
+                <option value="speed">速脈 · Speed Pulse</option>
+                <option value="apsidal">日近 · Apsidal Pluck</option>
+                <option value="metronome">拍板 · Metronome</option>
+                <option value="guqin">古琴 · Guqin Pluck</option>
               </select>
             </label>
-            <label class="inline" style="gap:8px;">
-              Phase by orbit
-              <input type="checkbox" id="checkbox-phase-orbit" />
-            </label>
-          </div>
-          <div class="row">
-            <button id="btn-center">Center Star</button>
-            <button id="btn-fit">Fit All</button>
-            <span class="muted">|</span>
-            <button id="btn-save">Save</button>
-            <button id="btn-load">Load</button>
-            <input id="input-file" type="file" accept="application/json" style="display:none" />
-          </div>
-          <div class="row sliders">
-            <label>
-              Time Step
-              <input id="range-dt" type="range" min="0.01" max="2" value="0.5" step="0.01" />
-              <span id="label-dt">0.50</span>
-            </label>
-            <label>
-              Gravity (G)
-              <input id="range-g" type="range" min="0.1" max="10" value="2" step="0.1" />
-              <span id="label-g">2.0</span>
-            </label>
-            <label>
-              Trail Length
-              <input id="range-trail" type="range" min="0" max="400" value="150" step="10" />
-              <span id="label-trail">150</span>
-            </label>
-          </div>
-          <div class="row">
-            <span class="muted">Presets:</span>
-            <button id="preset-solar">Solar Mini</button>
-            <button id="preset-binary">Binary Stars</button>
-            <button id="preset-ring">Asteroid Ring</button>
-            <button id="preset-random">Random System</button>
           </div>
         </section>
 
-        <section class="card">
-          <h2>Add Planet</h2>
+        <section class="card" data-char="生">
+          <div class="card-head">
+            <h2><span class="cn">造星</span><span class="en">Conjure Planet</span></h2>
+            <span class="card-subtitle">提筆點染 · Place bodies on the paper</span>
+          </div>
           <form id="form-add">
-            <div class="grid">
-              <label>
-                Name
-                <input id="input-name" type="text" placeholder="Planet X" />
+            <div class="grid-two">
+              <label class="field">
+                <span class="field-label"><span class="cn">名</span><span class="en">Name</span></span>
+                <input id="input-name" type="text" placeholder="無名星 · Unnamed" />
               </label>
-              <label>
-                Color
-                <input id="input-color" type="color" value="#51a7f9" />
+              <label class="field">
+                <span class="field-label"><span class="cn">色</span><span class="en">Ink</span></span>
+                <input id="input-color" type="color" value="#28445e" />
               </label>
-              <label>
-                Timbre
+              <label class="field">
+                <span class="field-label"><span class="cn">音色</span><span class="en">Timbre</span></span>
                 <select id="input-timbre">
-                  <option value="sine">Sine</option>
-                  <option value="triangle">Triangle</option>
-                  <option value="square">Square</option>
-                  <option value="sawtooth">Sawtooth</option>
-                  <option value="organ">Organ</option>
-                  <option value="bell">Bell</option>
-                  <option value="pluck">Pluck</option>
-                  <option value="noise">Noise</option>
+                  <option value="sine">和 · Sine</option>
+                  <option value="triangle">磬 · Triangle</option>
+                  <option value="organ">笙 · Organ</option>
+                  <option value="bell">鐘 · Bell</option>
+                  <option value="pluck">琴 · Pluck</option>
+                  <option value="square">梆 · Square</option>
+                  <option value="sawtooth">簫 · Saw</option>
+                  <option value="noise">風 · Noise</option>
                 </select>
               </label>
-              <label>
-                Mass
+              <label class="field">
+                <span class="field-label"><span class="cn">質量</span><span class="en">Mass</span></span>
                 <input id="input-mass" type="number" min="0.01" step="0.01" value="5" />
               </label>
-              <label>
-                Radius
+              <label class="field">
+                <span class="field-label"><span class="cn">半徑</span><span class="en">Radius</span></span>
                 <input id="input-radius" type="number" min="1" step="1" value="6" />
               </label>
-              <label>
-                Pos X
+              <label class="field">
+                <span class="field-label"><span class="cn">位 X</span><span class="en">Pos X</span></span>
                 <input id="input-posx" type="number" step="1" value="160" />
               </label>
-              <label>
-                Pos Y
+              <label class="field">
+                <span class="field-label"><span class="cn">位 Y</span><span class="en">Pos Y</span></span>
                 <input id="input-posy" type="number" step="1" value="0" />
               </label>
-              <label>
-                Vel X
+              <label class="field">
+                <span class="field-label"><span class="cn">速 X</span><span class="en">Vel X</span></span>
                 <input id="input-velx" type="number" step="0.1" value="0" />
               </label>
-              <label>
-                Vel Y
+              <label class="field">
+                <span class="field-label"><span class="cn">速 Y</span><span class="en">Vel Y</span></span>
                 <input id="input-vely" type="number" step="0.1" value="1.6" />
               </label>
             </div>
-            <div class="row">
-              <button type="submit">Add Planet</button>
+            <div class="row btn-row">
+              <button type="submit" class="brush-btn primary">
+                <span class="cn">落筆 · 生一星</span><span class="en">Summon</span>
+              </button>
             </div>
           </form>
         </section>
 
-        <section id="inspector-card" class="card" style="display:none;">
-          <h2>Body Inspector</h2>
+        <section class="card" data-char="卷">
+          <div class="card-head">
+            <h2><span class="cn">典籍</span><span class="en">Scroll Presets</span></h2>
+            <span class="card-subtitle">古今星圖 · Compositions of the old masters</span>
+          </div>
+          <div class="preset-grid">
+            <button id="preset-solar" class="preset-card" data-char="日">
+              <div class="preset-cn">太陽系</div>
+              <div class="preset-en">Solar Mini</div>
+            </button>
+            <button id="preset-binary" class="preset-card" data-char="雙">
+              <div class="preset-cn">雙星</div>
+              <div class="preset-en">Binary Stars</div>
+            </button>
+            <button id="preset-ring" class="preset-card" data-char="環">
+              <div class="preset-cn">星環</div>
+              <div class="preset-en">Asteroid Ring</div>
+            </button>
+            <button id="preset-random" class="preset-card" data-char="隨">
+              <div class="preset-cn">隨筆</div>
+              <div class="preset-en">Random System</div>
+            </button>
+            <button id="preset-trojan" class="preset-card" data-char="伴">
+              <div class="preset-cn">伴星</div>
+              <div class="preset-en">Trojan Dance</div>
+            </button>
+            <button id="preset-figure8" class="preset-card" data-char="舞">
+              <div class="preset-cn">蝴蝶</div>
+              <div class="preset-en">Figure-Eight</div>
+            </button>
+          </div>
+        </section>
+
+        <section id="inspector-card" class="card" data-char="觀" hidden>
+          <div class="card-head">
+            <h2><span class="cn">觀星</span><span class="en">Body Inspector</span></h2>
+            <span class="card-subtitle">一筆之變 · Tune this body</span>
+          </div>
           <form id="form-inspector">
-            <div class="grid">
-              <label>
-                Name
+            <div class="grid-two">
+              <label class="field">
+                <span class="field-label"><span class="cn">名</span><span class="en">Name</span></span>
                 <input id="ins-name" type="text" />
               </label>
-              <label>
-                Color
-                <input id="ins-color" type="color" value="#51a7f9" />
+              <label class="field">
+                <span class="field-label"><span class="cn">色</span><span class="en">Ink</span></span>
+                <input id="ins-color" type="color" />
               </label>
-              <label>
-                Mass
+              <label class="field">
+                <span class="field-label"><span class="cn">質量</span><span class="en">Mass</span></span>
                 <input id="ins-mass" type="number" min="0.01" step="0.01" />
               </label>
-              <label>
-                Radius
+              <label class="field">
+                <span class="field-label"><span class="cn">半徑</span><span class="en">Radius</span></span>
                 <input id="ins-radius" type="number" min="1" step="1" />
               </label>
-              <label>
-                Vel X
+              <label class="field">
+                <span class="field-label"><span class="cn">速 X</span><span class="en">Vel X</span></span>
                 <input id="ins-velx" type="number" step="0.1" />
               </label>
-              <label>
-                Vel Y
+              <label class="field">
+                <span class="field-label"><span class="cn">速 Y</span><span class="en">Vel Y</span></span>
                 <input id="ins-vely" type="number" step="0.1" />
               </label>
             </div>
-            <div class="row">
-              <button id="ins-deselect" type="button">Deselect</button>
-              <button id="ins-remove" class="danger" type="button">Remove</button>
+
+            <div id="inspector-readout" class="readout">
+              <div class="readout-row">
+                <span class="readout-label">軌 · Orbit</span>
+                <span id="read-orbit" class="readout-val">—</span>
+              </div>
+              <div class="readout-row">
+                <span class="readout-label">週 · Period</span>
+                <span id="read-period" class="readout-val">—</span>
+              </div>
+              <div class="readout-row">
+                <span class="readout-label">速 · Speed</span>
+                <span id="read-speed" class="readout-val">—</span>
+              </div>
+            </div>
+
+            <div class="row btn-row">
+              <button id="ins-deselect" type="button" class="brush-btn ghost-btn">
+                <span class="cn">放</span><span class="en">Deselect</span>
+              </button>
+              <button id="ins-remove" type="button" class="brush-btn danger">
+                <span class="cn">消</span><span class="en">Remove</span>
+              </button>
             </div>
           </form>
         </section>
 
-        <section class="card">
-          <h2>Bodies</h2>
+        <section class="card" data-char="宿">
+          <div class="card-head">
+            <h2><span class="cn">眾星譜</span><span class="en">Bodies</span></h2>
+            <span class="card-subtitle">點名之冊 · Roll call</span>
+          </div>
           <ul id="list-bodies" class="body-list"></ul>
         </section>
+
+        <footer class="panel-footer">
+          <span class="sig">落款 ·</span>
+          <span class="sig-en">crafted in ink &amp; gravity</span>
+        </footer>
       </aside>
     </div>
 
     <script src="script.js"></script>
   </body>
-  </html>
+</html>
